@@ -32,17 +32,17 @@ public class LittleHttpServer {
         LOGGER.info("Starting server on port " + port);
         try (ServerSocket server = new ServerSocket(port)) {
             while (true) {
-                Socket socket = server.accept();
-                InputStreamReader reader = new InputStreamReader(socket.getInputStream());
-                BufferedReader bufferedReader = new BufferedReader(reader);
-                String line = bufferedReader.readLine();
-                LOGGER.debug("Received: " + line);
-                if (isValidRequest(line)) {
-                    String str = processRequests(line);
-                    try (OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream())) {
+                try (
+                        Socket socket = server.accept();
+                        InputStreamReader reader = new InputStreamReader(socket.getInputStream());
+                        BufferedReader bufferedReader = new BufferedReader(reader);
+                        OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream())) {
+                    String line = bufferedReader.readLine();
+                    LOGGER.debug("Received: " + line);
+                    if (isValidRequest(line)) {
+                        String str = processRequests(line);
                         writer.write(str);
                     }
-                    socket.close();
                 }
             }
         } catch (Exception e) {
