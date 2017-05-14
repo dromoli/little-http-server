@@ -29,6 +29,15 @@ return to the app logic.
 Caveats
 -------
 
-The server at this stage only returns text files (not binary files).
+The server at this stage only returns text files (not binary files). Problably we could decide whether to write binary
+content vs text content based on the result of Files.probeContentType().
 
-The display page does not allow column sorting.
+The display page does not allow column sorting. This would require better page formatting to begin with and then
+handling a few more URLs and different sorting lambdas/comparators to cover each case.
+
+
+Conclusion
+----------
+
+This has been a fun and rather enlightening exercise. It made me refresh some Socket basics along with reminding me to
+what extent our work is simplified by web frameworks these days.
