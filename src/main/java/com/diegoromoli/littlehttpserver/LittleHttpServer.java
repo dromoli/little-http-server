@@ -64,7 +64,6 @@ public class LittleHttpServer {
             return false;
         line = line.toUpperCase();
         return line.startsWith(GET_REQUEST_PREFIX) && line.endsWith(GET_REQUEST_POSTFIX) && line.split(" ").length == 3;
-
     }
 
     private String processRequests(String request) throws IOException {
@@ -90,6 +89,15 @@ public class LittleHttpServer {
         }
     }
 
+    private String oneLevelUp(String serverCurrentDir) {
+        return serverCurrentDir.substring(0, serverCurrentDir.lastIndexOf("/"));
+    }
+
+    private boolean isValidPath(String s) {
+        File newDirectory = new File("." + s);
+        return newDirectory.exists();
+    }
+
     private String navigationLinks() {
         return String.format("<a href='%s'>" +
                 ".</a><br/><a href='%s%s'>..</a><br/>",
@@ -107,15 +115,6 @@ public class LittleHttpServer {
 
     private String http200Plain(String pageContent) {
         return String.format("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n%s", pageContent);
-    }
-
-    private String oneLevelUp(String serverCurrentDir) {
-        return serverCurrentDir.substring(0, serverCurrentDir.lastIndexOf("/"));
-    }
-
-    private boolean isValidPath(String s) {
-        File newDirectory = new File("." + s);
-        return newDirectory.exists();
     }
 
     public static void main(String[] args) {
