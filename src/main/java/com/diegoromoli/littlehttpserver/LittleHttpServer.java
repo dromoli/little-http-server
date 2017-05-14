@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -29,26 +31,31 @@ public class LittleHttpServer {
     }
 
     private void go() {
-        LOGGER.info("Starting server on port " + port);
+        LOGGER.info("Starting server on port {}", port);
         try (ServerSocket server = new ServerSocket(port)) {
             while (true) {
-                Socket socket = server.accept();
-                InputStreamReader reader = new InputStreamReader(socket.getInputStream());
-                BufferedReader bufferedReader = new BufferedReader(reader);
-                String line = bufferedReader.readLine();
-                LOGGER.debug("Received: " + line);
-                if (isValidRequest(line)) {
-                    String str = processRequests(line);
-                    try (OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream())) {
+                try (
+                        Socket socket = server.accept();
+                        InputStreamReader reader = new InputStreamReader(socket.getInputStream());
+                        BufferedReader bufferedReader = new BufferedReader(reader);
+                        OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream())) {
+                    String line = bufferedReader.readLine();
+                    LOGGER.debug("Received: {}", line);
+                    if (isValidRequest(line)) {
+                        String str = processRequests(line);
                         writer.write(str);
                     }
-                    socket.close();
                 }
             }
         } catch (Exception e) {
-            LOGGER.error("Error: " + e.getMessage());
+            LOGGER.debug("Error: ", e);
+            LOGGER.error("Error: {}", e.getMessage());
             System.exit(1);
         }
+    }
+
+    private String getServerAddress() {
+        return "http://localhost:" + port + "/";
     }
 
     private boolean isValidRequest(String line) {
@@ -59,22 +66,46 @@ public class LittleHttpServer {
 
     }
 
-    private String processRequests(String request) {
+    private String processRequests(String request) throws IOException {
         String[] lineArray = request.split(" ");
         if (isValidPath(lineArray[1])) {
             serverCurrentDir = "." + lineArray[1];
         } else {
-            return "HTTP/1.1 404 Not Found";
+            return http404();
         }
         File currentDir = new File(serverCurrentDir);
-        List<File> contents = Arrays.asList(currentDir.listFiles());
-        String str = "<a href='http://localhost:8080/'>" +
-                ".</a><br/><a href='http://localhost:8080/" + oneLevelUp(serverCurrentDir) + "'>..</a><br/>";
-        str += contents.stream().sorted(new DirComparator()
-        ).map(f -> (f.isDirectory() ? new DirectoryHtmlDisplay(f.getPath(), f.getName()).toHtmlString() : f
-                .getName())).
-                collect(Collectors.joining("<br/>"));
-        return "HTTP/1.1 200 OK\r\n\r\n<html><font face='monospace'>" + str + "</font></html>";
+        if (currentDir.isDirectory()) {
+            List<File> contents = Arrays.asList(currentDir.listFiles());
+            String str = navigationLinks();
+            str += contents.stream().sorted(new DirComparator()
+            ).map(f -> new DirectoryHtmlDisplay(getServerAddress(), f.getPath(), f.getName())
+                    .toHtmlString()).
+                    collect(Collectors.joining("<br/>"));
+            return http200Html(str);
+        } else {
+            String fileContents = new String(Files.readAllBytes(Paths.get
+                    (currentDir.toURI())));
+            LOGGER.debug("File contents: {}", fileContents);
+            return http200Plain(fileContents);
+        }
+    }
+
+    private String navigationLinks() {
+        return "<a href='" + getServerAddress() + "'>" +
+                ".</a><br/><a href='" + getServerAddress() + oneLevelUp(serverCurrentDir) + "'>..</a><br/>";
+    }
+
+    private String http404() {
+        return "HTTP/1.1 404 Not Found\r\n\r\n<html><font face='monospace'>Path Not " +
+                "Found<br/><br/><a href='" + getServerAddress() + "'>Back</a></font></html>";
+    }
+
+    private String http200Html(String pageContent) {
+        return "HTTP/1.1 200 OK\r\n\r\n<html><font face='monospace'>" + pageContent + "</font></html>";
+    }
+
+    private String http200Plain(String pageContent) {
+        return "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n" + pageContent;
     }
 
     private String oneLevelUp(String serverCurrentDir) {
@@ -83,7 +114,7 @@ public class LittleHttpServer {
 
     private boolean isValidPath(String s) {
         File newDirectory = new File("." + s);
-        return newDirectory.isDirectory();
+        return newDirectory.exists();
     }
 
     public static void main(String[] args) {
@@ -92,8 +123,7 @@ public class LittleHttpServer {
             properties.load(LittleHttpServer.class.getClassLoader().getResourceAsStream("littlehttpserver.properties"));
             Integer port = Integer.parseInt(properties.getProperty("port"));
             if (port < MIN_SERVER_PORT || port > MAX_SERVER_PORT) {
-                throw new NumberFormatException("The 'port' property in littlehttpserver.properties must be an " +
-                        "integer value between 0 and 65535.");
+                throw new NumberFormatException();
             }
             LittleHttpServer littleHttpServer = new LittleHttpServer(START_DIR, port);
             littleHttpServer.go();
@@ -101,11 +131,9 @@ public class LittleHttpServer {
             LOGGER.error("Error initialising server");
             System.exit(1);
         } catch (NumberFormatException nfe) {
-            LOGGER.error("The 'port' property in littlehttpserver.properties must be an integer value between " +
-                    MIN_SERVER_PORT + " and " + MAX_SERVER_PORT + ".");
+            LOGGER.error("The 'port' property in littlehttpserver.properties must be an integer value between {} and " +
+                    "{}.", MIN_SERVER_PORT, MAX_SERVER_PORT);
             System.exit(1);
         }
-
-
     }
 }
