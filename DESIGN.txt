@@ -17,11 +17,11 @@ The server is implemented mostly in one class, with 2 helper classes. These were
 the main class although it is debatable whether this is actually helpful in this simple case.
 
 The processRequests(String request) method in the LittleHttpServer class has the most interesting logic. It mainly
-determines whether a File is a directory or an actual file and, depending on that, returns an appropriate response. If
+determines whether a File is a directory or a regular file and, depending on that, returns an appropriate response. If
 it is dealing with a directory, it first adds navigation links to the response. These are used to go back to the root
 directory (.) or one level up (..). Then, it gets the list of files and dirs inside the current directory, sorts them
 out (directories first) while providing format and hrefs for the links that will be displayed. Alternatively, if it is
-dealing with a file, it reads the file's content and returns it so that it can be written to the socket output stream.
+dealing with a file, it reads and returns the file's content so that it can be written to the socket output stream.
 Navigation is interrupted when viewing a file, making it necessary for the user to hit the back button in order to
 return to the app logic.
 
@@ -30,3 +30,5 @@ Caveats
 -------
 
 The server at this stage only returns text files (not binary files).
+
+The display page does not allow column sorting.
