@@ -15,15 +15,16 @@ import java.util.stream.Collectors;
 
 public class LittleHttpServer {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(LittleHttpServer.class);
+
     private static final String GET_REQUEST_PREFIX = "GET /";
     private static final String GET_REQUEST_POSTFIX = "HTTP/1.1";
     private static final String START_DIR = ".";
     private static final Integer MIN_SERVER_PORT = 1024;
     private static final Integer MAX_SERVER_PORT = 65535;
+
     private String serverCurrentDir;
     private Integer port;
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(LittleHttpServer.class);
 
     private LittleHttpServer(String startDir, Integer port) {
         this.serverCurrentDir = startDir;
@@ -55,7 +56,7 @@ public class LittleHttpServer {
     }
 
     private String getServerAddress() {
-        return "http://localhost:" + port + "/";
+        return String.format("http://localhost:%d/", port);
     }
 
     private boolean isValidRequest(String line) {
@@ -63,7 +64,6 @@ public class LittleHttpServer {
             return false;
         line = line.toUpperCase();
         return line.startsWith(GET_REQUEST_PREFIX) && line.endsWith(GET_REQUEST_POSTFIX) && line.split(" ").length == 3;
-
     }
 
     private String processRequests(String request) throws IOException {
@@ -85,27 +85,8 @@ public class LittleHttpServer {
         } else {
             String fileContents = new String(Files.readAllBytes(Paths.get
                     (currentDir.toURI())));
-            LOGGER.debug("File contents: {}", fileContents);
             return http200Plain(fileContents);
         }
-    }
-
-    private String navigationLinks() {
-        return "<a href='" + getServerAddress() + "'>" +
-                ".</a><br/><a href='" + getServerAddress() + oneLevelUp(serverCurrentDir) + "'>..</a><br/>";
-    }
-
-    private String http404() {
-        return "HTTP/1.1 404 Not Found\r\n\r\n<html><font face='monospace'>Path Not " +
-                "Found<br/><br/><a href='" + getServerAddress() + "'>Back</a></font></html>";
-    }
-
-    private String http200Html(String pageContent) {
-        return "HTTP/1.1 200 OK\r\n\r\n<html><font face='monospace'>" + pageContent + "</font></html>";
-    }
-
-    private String http200Plain(String pageContent) {
-        return "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n" + pageContent;
     }
 
     private String oneLevelUp(String serverCurrentDir) {
@@ -115,6 +96,25 @@ public class LittleHttpServer {
     private boolean isValidPath(String s) {
         File newDirectory = new File("." + s);
         return newDirectory.exists();
+    }
+
+    private String navigationLinks() {
+        return String.format("<a href='%s'>" +
+                ".</a><br/><a href='%s%s'>..</a><br/>",
+                getServerAddress(), getServerAddress(), oneLevelUp(serverCurrentDir));
+    }
+
+    private String http404() {
+        return String.format("HTTP/1.1 404 Not Found\r\n\r\n<html><font face='monospace'>Path Not " +
+                "Found<br/><br/><a href='%s'>Back</a></font></html>", getServerAddress());
+    }
+
+    private String http200Html(String pageContent) {
+        return String.format("HTTP/1.1 200 OK\r\n\r\n<html><font face='monospace'>%s</font></html>", pageContent);
+    }
+
+    private String http200Plain(String pageContent) {
+        return String.format("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n%s", pageContent);
     }
 
     public static void main(String[] args) {
