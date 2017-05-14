@@ -39,7 +39,8 @@ public class LittleHttpServer {
                         Socket socket = server.accept();
                         InputStreamReader reader = new InputStreamReader(socket.getInputStream());
                         BufferedReader bufferedReader = new BufferedReader(reader);
-                        OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream())) {
+                        OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream())
+                ) {
                     String line = bufferedReader.readLine();
                     LOGGER.debug("Received: {}", line);
                     if (isValidRequest(line)) {
@@ -81,11 +82,12 @@ public class LittleHttpServer {
             ).map(f -> new DirectoryHtmlDisplay(getServerAddress(), f.getPath(), f.getName())
                     .toHtmlString()).
                     collect(Collectors.joining("<br/>"));
-            return http200Html(str);
+            return http200Dir(str);
         } else {
+            String contentType = Files.probeContentType(Paths.get(currentDir.toURI()));
             String fileContents = new String(Files.readAllBytes(Paths.get
                     (currentDir.toURI())));
-            return http200Plain(fileContents);
+            return http200File(contentType, fileContents);
         }
     }
 
@@ -100,7 +102,7 @@ public class LittleHttpServer {
 
     private String navigationLinks() {
         return String.format("<a href='%s'>" +
-                ".</a><br/><a href='%s%s'>..</a><br/>",
+                        ".</a><br/><a href='%s%s'>..</a><br/>",
                 getServerAddress(), getServerAddress(), oneLevelUp(serverCurrentDir));
     }
 
@@ -109,30 +111,26 @@ public class LittleHttpServer {
                 "Found<br/><br/><a href='%s'>Back</a></font></html>", getServerAddress());
     }
 
-    private String http200Html(String pageContent) {
+    private String http200Dir(String pageContent) {
         return String.format("HTTP/1.1 200 OK\r\n\r\n<html><font face='monospace'>%s</font></html>", pageContent);
     }
 
-    private String http200Plain(String pageContent) {
-        return String.format("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n%s", pageContent);
+    private String http200File(String contentType, String pageContent) {
+        return String.format("HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n%s", contentType, pageContent);
     }
 
     public static void main(String[] args) {
         Properties properties = new Properties();
         try {
-            properties.load(LittleHttpServer.class.getClassLoader().getResourceAsStream("littlehttpserver.properties"));
-            Integer port = Integer.parseInt(properties.getProperty("port"));
+            Integer port = Integer.valueOf(System.getProperty("little.http.server.port", "8080"));
             if (port < MIN_SERVER_PORT || port > MAX_SERVER_PORT) {
                 throw new NumberFormatException();
             }
             LittleHttpServer littleHttpServer = new LittleHttpServer(START_DIR, port);
             littleHttpServer.go();
-        } catch (IOException ioe) {
-            LOGGER.error("Error initialising server");
-            System.exit(1);
         } catch (NumberFormatException nfe) {
-            LOGGER.error("The 'port' property in littlehttpserver.properties must be an integer value between {} and " +
-                    "{}.", MIN_SERVER_PORT, MAX_SERVER_PORT);
+            LOGGER.error("The 'port' property in must be an integer value between {} and {}.", MIN_SERVER_PORT,
+                    MAX_SERVER_PORT);
             System.exit(1);
         }
     }
