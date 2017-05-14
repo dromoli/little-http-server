@@ -42,7 +42,7 @@ public class LittleHttpServer {
                         OutputStreamWriter writer = new OutputStreamWriter(socket.getOutputStream())
                 ) {
                     String line = bufferedReader.readLine();
-                    LOGGER.debug("Received: {}", line);
+                    LOGGER.info("Received: {}", line);
                     if (isValidRequest(line)) {
                         String str = processRequests(line);
                         writer.write(str);
@@ -75,46 +75,62 @@ public class LittleHttpServer {
             return http404();
         }
         File currentDir = new File(serverCurrentDir);
-        if (currentDir.isDirectory()) {
+        if (currentDir.isDirectory()) {  // if it's a dir, list the files contained on it
             List<File> contents = Arrays.asList(currentDir.listFiles());
             String str = navigationLinks();
-            str += contents.stream().sorted(new DirComparator()
-            ).map(f -> new DirectoryHtmlDisplay(getServerAddress(), f.getPath(), f.getName())
-                    .toHtmlString()).
-                    collect(Collectors.joining("<br/>"));
+            str += contents.stream().sorted(new DirComparator())
+                    .map(f -> new DirectoryHtmlDisplay(getServerAddress(), f).toHtmlString())
+                    .collect(Collectors.joining("<br/>"));
             return http200Dir(str);
-        } else {
+        } else {                        // if it's a file, list the file's content instead
             String contentType = Files.probeContentType(Paths.get(currentDir.toURI()));
-            String fileContents = new String(Files.readAllBytes(Paths.get
-                    (currentDir.toURI())));
+            String fileContents = new String(Files.readAllBytes(Paths.get(currentDir.toURI())));
             return http200File(contentType, fileContents);
         }
     }
 
+    /*
+    To go up in the directory structure while navigating the filesystem.
+     */
     private String oneLevelUp(String serverCurrentDir) {
         return serverCurrentDir.substring(0, serverCurrentDir.lastIndexOf("/"));
     }
 
+    /*
+    Check whether the URL makes some sense.
+     */
     private boolean isValidPath(String s) {
         File newDirectory = new File("." + s);
         return newDirectory.exists();
     }
 
+    /*
+    Add navigation links (. and ..) at the top of the list.
+     */
     private String navigationLinks() {
         return String.format("<a href='%s'>" +
                         ".</a><br/><a href='%s%s'>..</a><br/>",
                 getServerAddress(), getServerAddress(), oneLevelUp(serverCurrentDir));
     }
 
+    /*
+    A 404 page.
+     */
     private String http404() {
         return String.format("HTTP/1.1 404 Not Found\r\n\r\n<html><font face='monospace'>Path Not " +
                 "Found<br/><br/><a href='%s'>Back</a></font></html>", getServerAddress());
     }
 
+    /*
+    Show the directory contents.
+     */
     private String http200Dir(String pageContent) {
         return String.format("HTTP/1.1 200 OK\r\n\r\n<html><font face='monospace'>%s</font></html>", pageContent);
     }
 
+    /*
+    Show the file contents
+     */
     private String http200File(String contentType, String pageContent) {
         return String.format("HTTP/1.1 200 OK\r\nContent-Type: %s\r\n\r\n%s", contentType, pageContent);
     }
@@ -122,6 +138,7 @@ public class LittleHttpServer {
     public static void main(String[] args) {
         Properties properties = new Properties();
         try {
+            // if port was supplied, use that value. Otherwise use a default port.
             Integer port = Integer.valueOf(System.getProperty("little.http.server.port", "8080"));
             if (port < MIN_SERVER_PORT || port > MAX_SERVER_PORT) {
                 throw new NumberFormatException();
