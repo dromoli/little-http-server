@@ -15,15 +15,16 @@ import java.util.stream.Collectors;
 
 public class LittleHttpServer {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(LittleHttpServer.class);
+
     private static final String GET_REQUEST_PREFIX = "GET /";
     private static final String GET_REQUEST_POSTFIX = "HTTP/1.1";
     private static final String START_DIR = ".";
     private static final Integer MIN_SERVER_PORT = 1024;
     private static final Integer MAX_SERVER_PORT = 65535;
+
     private String serverCurrentDir;
     private Integer port;
-
-    private static final Logger LOGGER = LoggerFactory.getLogger(LittleHttpServer.class);
 
     private LittleHttpServer(String startDir, Integer port) {
         this.serverCurrentDir = startDir;
@@ -55,7 +56,7 @@ public class LittleHttpServer {
     }
 
     private String getServerAddress() {
-        return "http://localhost:" + port + "/";
+        return String.format("http://localhost:%d/", port);
     }
 
     private boolean isValidRequest(String line) {
@@ -85,7 +86,6 @@ public class LittleHttpServer {
         } else {
             String fileContents = new String(Files.readAllBytes(Paths.get
                     (currentDir.toURI())));
-            LOGGER.debug("File contents: {}", fileContents);
             return http200Plain(fileContents);
         }
     }
