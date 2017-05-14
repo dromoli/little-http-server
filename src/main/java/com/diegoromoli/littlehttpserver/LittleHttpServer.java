@@ -6,6 +6,8 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -46,9 +48,14 @@ public class LittleHttpServer {
                 }
             }
         } catch (Exception e) {
+            LOGGER.debug("Error: ", e);
             LOGGER.error("Error: " + e.getMessage());
             System.exit(1);
         }
+    }
+
+    private String getServerAddress() {
+        return "http://localhost:" + port + "/";
     }
 
     private boolean isValidRequest(String line) {
@@ -59,22 +66,31 @@ public class LittleHttpServer {
 
     }
 
-    private String processRequests(String request) {
+    private String processRequests(String request) throws IOException {
         String[] lineArray = request.split(" ");
         if (isValidPath(lineArray[1])) {
             serverCurrentDir = "." + lineArray[1];
         } else {
-            return "HTTP/1.1 404 Not Found";
+            return "HTTP/1.1 404 Not Found\r\n\r\n<html><font face='monospace'>Path Not Found<br/><br/><a href='" + getServerAddress() + "'>Back</a></font></html>";
         }
         File currentDir = new File(serverCurrentDir);
-        List<File> contents = Arrays.asList(currentDir.listFiles());
-        String str = "<a href='http://localhost:8080/'>" +
-                ".</a><br/><a href='http://localhost:8080/" + oneLevelUp(serverCurrentDir) + "'>..</a><br/>";
-        str += contents.stream().sorted(new DirComparator()
-        ).map(f -> (f.isDirectory() ? new DirectoryHtmlDisplay(f.getPath(), f.getName()).toHtmlString() : f
-                .getName())).
-                collect(Collectors.joining("<br/>"));
-        return "HTTP/1.1 200 OK\r\n\r\n<html><font face='monospace'>" + str + "</font></html>";
+        if (currentDir.isDirectory()) {
+            List<File> contents = Arrays.asList(currentDir.listFiles());
+            String str = "<a href='" + getServerAddress() + "'>" +
+                    ".</a><br/><a href='" + getServerAddress() + oneLevelUp(serverCurrentDir) + "'>..</a><br/>";
+            str += contents.stream().sorted(new DirComparator()
+            ).map(f -> (f.isDirectory() ? new DirectoryHtmlDisplay(getServerAddress(), f.getPath(), f.getName())
+                    .toHtmlString() : new DirectoryHtmlDisplay(getServerAddress(), f.getPath(), f.getName())
+                    .toHtmlString
+                            ())).
+                    collect(Collectors.joining("<br/>"));
+            return "HTTP/1.1 200 OK\r\n\r\n<html><font face='monospace'>" + str + "</font></html>";
+        } else {
+            String fileContents = new String(Files.readAllBytes(Paths.get
+                    (currentDir.toURI())));
+            LOGGER.debug("File contents: " + fileContents);
+            return "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n" + fileContents;
+        }
     }
 
     private String oneLevelUp(String serverCurrentDir) {
@@ -83,7 +99,7 @@ public class LittleHttpServer {
 
     private boolean isValidPath(String s) {
         File newDirectory = new File("." + s);
-        return newDirectory.isDirectory();
+        return newDirectory.exists();
     }
 
     public static void main(String[] args) {
