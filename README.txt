@@ -1,5 +1,5 @@
-LITTLE HTTP SERVER
-==================
+LITTLE HTTP SERVER - README
+===========================
 
 A little HTTP server written as a code assignment. The server will listen on a given port and list the contents of the
 directory it is running in.

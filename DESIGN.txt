@@ -1,1 +1,32 @@
-This is the DESIGN file.
+LITTLE HTTP SERVER - DESIGN NOTES
+=================================
+
+These brief document explains some design decisions and what is missing at this stage.
+
+Design notes
+------------
+
+The server will listen on the specified port for incoming connections. The port can be supplied as a JVM argument at
+the command line. Failing to do so will make the server run on a default port (8080). There were a number of options
+for implementing this (a properties file, arguments to the main method, etc). Being only one value, I considered the
+properties file an overkill, whereas the argument to the main method was a more interesting option. I favoured the
+JVM argument as it can be accessed anywhere in the system instead of only inside the main method as the other option
+(even though we do not do that at this stage).
+
+The server is implemented mostly in one class, with 2 helper classes. These were used to declutter the code a bit in
+the main class although it is debatable whether this is actually helpful in this simple case.
+
+The processRequests(String request) method in the LittleHttpServer class has the most interesting logic. It mainly
+determines whether a File is a directory or an actual file and, depending on that, returns an appropriate response. If
+it is dealing with a directory, it first adds navigation links to the response. These are used to go back to the root
+directory (.) or one level up (..). Then, it gets the list of files and dirs inside the current directory, sorts them
+out (directories first) while providing format and hrefs for the links that will be displayed. Alternatively, if it is
+dealing with a file, it reads the file's content and returns it so that it can be written to the socket output stream.
+Navigation is interrupted when viewing a file, making it necessary for the user to hit the back button in order to
+return to the app logic.
+
+
+Caveats
+-------
+
+The server at this stage only returns text files (not binary files).
