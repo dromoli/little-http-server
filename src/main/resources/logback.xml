@@ -10,6 +10,6 @@
     <appender-ref ref="STDOUT" />
   </root>
 
-  <logger name="com.diegoromoli.littlehttpserver" level="DEBUG" />
+  <logger name="com.diegoromoli.littlehttpserver" level="INFO" />
 
 </configuration>
