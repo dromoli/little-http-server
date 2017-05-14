@@ -91,21 +91,22 @@ public class LittleHttpServer {
     }
 
     private String navigationLinks() {
-        return "<a href='" + getServerAddress() + "'>" +
-                ".</a><br/><a href='" + getServerAddress() + oneLevelUp(serverCurrentDir) + "'>..</a><br/>";
+        return String.format("<a href='%s'>" +
+                ".</a><br/><a href='%s%s'>..</a><br/>",
+                getServerAddress(), getServerAddress(), oneLevelUp(serverCurrentDir));
     }
 
     private String http404() {
-        return "HTTP/1.1 404 Not Found\r\n\r\n<html><font face='monospace'>Path Not " +
-                "Found<br/><br/><a href='" + getServerAddress() + "'>Back</a></font></html>";
+        return String.format("HTTP/1.1 404 Not Found\r\n\r\n<html><font face='monospace'>Path Not " +
+                "Found<br/><br/><a href='%s'>Back</a></font></html>", getServerAddress());
     }
 
     private String http200Html(String pageContent) {
-        return "HTTP/1.1 200 OK\r\n\r\n<html><font face='monospace'>" + pageContent + "</font></html>";
+        return String.format("HTTP/1.1 200 OK\r\n\r\n<html><font face='monospace'>%s</font></html>", pageContent);
     }
 
     private String http200Plain(String pageContent) {
-        return "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n" + pageContent;
+        return String.format("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n%s", pageContent);
     }
 
     private String oneLevelUp(String serverCurrentDir) {
