@@ -2,7 +2,6 @@ package com.diegoromoli.littlehttpserver;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
-import java.time.LocalDate;
 import java.util.Date;
 
 public class DirectoryHtmlDisplay {
